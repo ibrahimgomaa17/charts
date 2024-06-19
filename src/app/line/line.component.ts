@@ -9,13 +9,13 @@ export class LineComponent implements AfterViewInit {
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
   @Input() width: number = 0;
   @Input() height: number = 0;
-  categoryPlot = 200;
-  categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']
-  data = [123, 276, 310, 212, 240, 156, 98]
+  categoryPlot = 100;
+  categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']
+  data = [123, 276, 310, 212, 240, 156, 98, 123, 276, 310, 212, 240, 156, 98]
   topArea = 50;
   bottomArea = 40;
   leftArea = 40;
-  rightArea = 10;
+  rightArea = 1;
   ngAfterViewInit(): void {
     const c = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
     if (this.width)
@@ -28,7 +28,8 @@ export class LineComponent implements AfterViewInit {
     c.canvas.width = width;
     c.canvas.height = height;
     const availableHeight = height - (this.topArea + this.bottomArea)
-    const categoryWidth = this.categoryPlot;
+    const availableWidth = width - (this.leftArea + this.rightArea)
+    const categoryWidth = this.categoryPlot < (availableWidth / this.categories.length)?(availableWidth / this.categories.length): this.categoryPlot;
     c.lineWidth = .3
     let sortedData: any = JSON.parse(JSON.stringify(this.data))
     sortedData.sort((a: number, b: number) => a - b);
@@ -44,26 +45,43 @@ export class LineComponent implements AfterViewInit {
     let move: number = 0;
     let isHold = false
     let start = 0;
+
+
+    // mobile controls
+    this.canvas.nativeElement.addEventListener('touchmove', e => {
+      e.preventDefault()
+      if (isHold) {
+        if ((move <= 0 && e.changedTouches[0].screenX - start > 0) || ((Math.abs(move) + width >= this.categories.length * categoryWidth) && e.changedTouches[0].screenX + Math.abs(move) < start))
+          return
+        move = e.changedTouches[0].screenX - start
+      }
+
+    })
+    this.canvas.nativeElement.addEventListener('touchstart', e => {
+      isHold = true
+      start = e.changedTouches[0].screenX - move;
+    })
+    this.canvas.nativeElement.addEventListener('touchend', e => {
+      isHold = false
+    })
+
+
+
+    // browser controls
     this.canvas.nativeElement.addEventListener('mousedown', e => {
       isHold = true
       start = e.clientX - move;
     })
+
     this.canvas.nativeElement.addEventListener('mouseup', e => {
       isHold = false
     })
     this.canvas.nativeElement.addEventListener('mousemove', e => {
       if (isHold) {
-        // console.log((move <= 0 && e.clientX - start > 0));
-        // console.log(((Math.abs(move) + width >= this.categories.length * categoryWidth)));
-        console.log(e.clientX + Math.abs(move) < start);
-
-        // console.log(start );
-
         if ((move <= 0 && e.clientX - start > 0) || ((Math.abs(move) + width >= this.categories.length * categoryWidth) && e.clientX + Math.abs(move) < start))
           return
         move = e.clientX - start
       }
-      console.log();
 
     })
 
@@ -87,10 +105,13 @@ export class LineComponent implements AfterViewInit {
 
 
 
-
+    c.globalCompositeOperation = 'destination-over';
 
     let index = -10;
     let self = this;
+
+
+
     function animate() {
       requestAnimationFrame(animate);
       // if (index > generatedPoints.length * 5)
@@ -98,21 +119,9 @@ export class LineComponent implements AfterViewInit {
       c.clearRect(0, 0, width, height)
 
       c.lineWidth = .25;
-      for (let index = 0; index <= self.categories.length; index++) {
-        c.beginPath();
-        let value = move + self.leftArea + (categoryWidth * index)
-        if(value < self.leftArea)
-          value = self.leftArea
-        c.moveTo(value, height - self.bottomArea)
-        c.lineTo(value, self.topArea);
-        c.closePath();
-        c.stroke()
-        c.textAlign = "center"
-        c.font = "14px Arial, Times, serif"
 
-        c.fillText(self.categories[index], move + self.leftArea + (categoryWidth * index) + categoryWidth / 2, height - (self.bottomArea / 2))
-        c.stroke()
-      }
+
+      //  y axis
       for (let index = 0; index <= steps; index++) {
         c.beginPath();
         c.moveTo(self.leftArea, (height - (self.bottomArea)) - (index * stepHeight))
@@ -126,13 +135,44 @@ export class LineComponent implements AfterViewInit {
         c.fillText((step * index).toString(), self.leftArea / 2, (height - self.bottomArea) - (index * stepHeight))
         c.stroke()
       }
+      c.fillStyle = 'white'
+      c.fillRect(0, 0, self.leftArea - 1, height);
+      c.fill()
+
+      // x-axis categories
+      for (let index = 0; index <= self.categories.length; index++) {
+        c.beginPath();
+        let value = move + self.leftArea + (categoryWidth * index)
+        if (value < self.leftArea)
+          value = self.leftArea
+        if (value > width)
+          value = width
+        c.moveTo(value, height - self.bottomArea)
+        c.lineTo(value, self.topArea);
+        c.closePath();
+        c.stroke()
+        c.textAlign = "center"
+        c.font = "14px Arial, Times, serif"
+
+        c.fillText(self.categories[index], move + self.leftArea + (categoryWidth * index) + categoryWidth / 2, height - (self.bottomArea / 2))
+        c.fillStyle = 'black'
+        c.fill();
+        c.stroke()
+      }
+
+
+
 
       c.lineWidth = 1;
       for (let ind = 0; ind < generatedPoints.length - 1; ind++) {
-        if (ind * 4 <= index) {
+        if (ind * 2 <= index) {
           c.beginPath();
+          c.fill();
+          c.arc(move + generatedPoints[ind + 1][0], generatedPoints[ind + 1][1], 4, 0, 2 * Math.PI);
           c.moveTo(move + generatedPoints[ind][0], generatedPoints[ind][1])
           c.lineTo(move + generatedPoints[ind + 1][0], generatedPoints[ind + 1][1])
+          c.fillStyle = "black";
+          c.fill();
           c.stroke()
           c.closePath();
         }
