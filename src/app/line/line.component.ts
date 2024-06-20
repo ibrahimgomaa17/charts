@@ -1,193 +1,61 @@
 import { AfterViewInit, Component, ElementRef, Input, OnInit, ViewChild } from '@angular/core';
+import { ChartBaseComponent } from '../chart-base.component';
+import { animate } from '@angular/animations';
 
 @Component({
   selector: 'app-line',
   templateUrl: './line.component.html',
   styleUrls: ['./line.component.scss']
 })
-export class LineComponent implements AfterViewInit {
-  @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
-  @Input() width: number = 0;
-  @Input() height: number = 0;
-  categoryPlot = 100;
+export class LineComponent extends ChartBaseComponent implements AfterViewInit {
+
   categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']
   data = [123, 276, 310, 212, 240, 156, 98, 123, 276, 310, 212, 240, 156, 98]
-  topArea = 50;
-  bottomArea = 40;
-  leftArea = 40;
-  rightArea = 1;
   ngAfterViewInit(): void {
-    const c = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
-    if (this.width)
-      this.canvas.nativeElement.width = this.width;
-    if (this.height)
-      this.canvas.nativeElement.height = this.height;
-
-    const width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
-    const height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
-    c.canvas.width = width;
-    c.canvas.height = height;
-    const availableHeight = height - (this.topArea + this.bottomArea)
-    const availableWidth = width - (this.leftArea + this.rightArea)
-    const categoryWidth = this.categoryPlot < (availableWidth / this.categories.length)?(availableWidth / this.categories.length): this.categoryPlot;
-    c.lineWidth = .3
-    let sortedData: any = JSON.parse(JSON.stringify(this.data))
-    sortedData.sort((a: number, b: number) => a - b);
-    let step = 5;
-    let stepFound = false;
-    while (!stepFound) {
-      if ((sortedData[sortedData.length - 1] / step) > 10)
-        step *= 2;
-      else stepFound = true;
-    }
-    const steps = Math.ceil(sortedData[sortedData.length - 1] / step);
-    const stepHeight = availableHeight / steps
-    let move: number = 0;
-    let isHold = false
-    let start = 0;
-
-
-    // mobile controls
-    this.canvas.nativeElement.addEventListener('touchmove', e => {
-      e.preventDefault()
-      if (isHold) {
-        if ((move <= 0 && e.changedTouches[0].screenX - start > 0) || ((Math.abs(move) + width >= this.categories.length * categoryWidth) && e.changedTouches[0].screenX + Math.abs(move) < start))
-          return
-        move = e.changedTouches[0].screenX - start
-      }
-
-    })
-    this.canvas.nativeElement.addEventListener('touchstart', e => {
-      isHold = true
-      start = e.changedTouches[0].screenX - move;
-    })
-    this.canvas.nativeElement.addEventListener('touchend', e => {
-      isHold = false
-    })
-
-
-
-    // browser controls
-    this.canvas.nativeElement.addEventListener('mousedown', e => {
-      isHold = true
-      start = e.clientX - move;
-    })
-
-    this.canvas.nativeElement.addEventListener('mouseup', e => {
-      isHold = false
-    })
-    this.canvas.nativeElement.addEventListener('mousemove', e => {
-      if (isHold) {
-        if ((move <= 0 && e.clientX - start > 0) || ((Math.abs(move) + width >= this.categories.length * categoryWidth) && e.clientX + Math.abs(move) < start))
-          return
-        move = e.clientX - start
-      }
-
-    })
-
-
-    let points: any = [];
-
-    let startPoint = height - this.bottomArea;
-    for (let index = 0; index < this.data.length; index++) {
-      const yPoint = this.data[index] * availableHeight / (steps * step)
-
-      points.push([(this.leftArea + (categoryWidth * index)) + categoryWidth / 2, startPoint - yPoint])
-      // c.fillStyle = "red"
-    }
-
-
-
-
-    const generatedPoints = points;
-    console.log(generatedPoints);
-
-
-
-
-    c.globalCompositeOperation = 'destination-over';
-
-    let index = -10;
+    this.generatePoints(this.categories, this.data);
+    this.registerControls(this.categories);
     let self = this;
-
-
-
-    function animate() {
+   function animate() {
       requestAnimationFrame(animate);
       // if (index > generatedPoints.length * 5)
       //   return;
-      c.clearRect(0, 0, width, height)
-
-      c.lineWidth = .25;
-
-
+      self.context.clearRect(0, 0, self.width, self.height)
       //  y axis
-      for (let index = 0; index <= steps; index++) {
-        c.beginPath();
-        c.moveTo(self.leftArea, (height - (self.bottomArea)) - (index * stepHeight))
-        c.lineTo(width - self.rightArea, (height - self.bottomArea) - (index * stepHeight))
-        c.closePath();
-        c.stroke()
-        c.textAlign = "center"
-        c.textBaseline = "middle"
-        c.font = "14px Arial, Times, serif"
-
-        c.fillText((step * index).toString(), self.leftArea / 2, (height - self.bottomArea) - (index * stepHeight))
-        c.stroke()
-      }
-      c.fillStyle = 'white'
-      c.fillRect(0, 0, self.leftArea - 1, height);
-      c.fill()
-
+      self.horizontalSection(self.context)
       // x-axis categories
-      for (let index = 0; index <= self.categories.length; index++) {
-        c.beginPath();
-        let value = move + self.leftArea + (categoryWidth * index)
-        if (value < self.leftArea)
-          value = self.leftArea
-        if (value > width)
-          value = width
-        c.moveTo(value, height - self.bottomArea)
-        c.lineTo(value, self.topArea);
-        c.closePath();
-        c.stroke()
-        c.textAlign = "center"
-        c.font = "14px Arial, Times, serif"
-
-        c.fillText(self.categories[index], move + self.leftArea + (categoryWidth * index) + categoryWidth / 2, height - (self.bottomArea / 2))
-        c.fillStyle = 'black'
-        c.fill();
-        c.stroke()
-      }
-
-
-
-
-      c.lineWidth = 1;
-      for (let ind = 0; ind < generatedPoints.length - 1; ind++) {
-        if (ind * 2 <= index) {
-          c.beginPath();
-          c.fill();
-          c.arc(move + generatedPoints[ind + 1][0], generatedPoints[ind + 1][1], 4, 0, 2 * Math.PI);
-          c.moveTo(move + generatedPoints[ind][0], generatedPoints[ind][1])
-          c.lineTo(move + generatedPoints[ind + 1][0], generatedPoints[ind + 1][1])
-          c.fillStyle = "black";
-          c.fill();
-          c.stroke()
-          c.closePath();
+      self.verticalSection(self.categories, self.context);
+      self.context.lineWidth = 1;
+      let arcValue = 3;
+      for (let ind = 0; ind < self.points.length - 1; ind++) {
+  
+        if (ind * 2 <= self.index) {
+          if (ind == 0) {
+            self.context.beginPath();
+            self.context.arc(self.move + self.points[0][0], self.points[0][1], arcValue, 0, 2 * Math.PI);
+            self.context.fill();
+            self.context.closePath()
+          }
+          self.context.beginPath();
+          self.context.arc(self.move + self.points[ind + 1][0], self.points[ind + 1][1], arcValue, 0, 2 * Math.PI);
+          self.context.moveTo(self.move + self.points[ind][0], self.points[ind][1])
+          self.context.lineTo(self.move + self.points[ind + 1][0], self.points[ind + 1][1])
+          self.context.fill();
+          self.context.stroke()
+          self.context.closePath();
         }
       }
-
-      // c.strokeStyle = 'green'
-      index++;
-
-
-
-
+  
+      // self.context.strokeStyle = 'green'
+      self.index++;
+  
+  
+  
+  
     }
     animate();
-
   }
+
+
 
 
   dataSet = [

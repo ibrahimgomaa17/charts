@@ -1,16 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { LineComponent } from './LineComponent';
+import { ChartBaseComponent } from './chart-base.component';
 
-describe('LineComponent', () => {
-  let component: LineComponent;
-  let fixture: ComponentFixture<LineComponent>;
+describe('ChartBaseComponent', () => {
+  let component: ChartBaseComponent;
+  let fixture: ComponentFixture<ChartBaseComponent>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      declarations: [LineComponent]
+      declarations: [ChartBaseComponent]
     });
-    fixture = TestBed.createComponent(LineComponent);
+    fixture = TestBed.createComponent(ChartBaseComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
