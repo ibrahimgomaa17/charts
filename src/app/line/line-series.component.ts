@@ -20,7 +20,7 @@ export class LineSeriesComponent {
     if (!this.series) {
       setTimeout(() => {
         let points = this.linecomponent.registerSeries(data)
-        this.series = new PointSeries(points, this.linecomponent.context)
+        this.series = new PointSeries(points, this.linecomponent.context, this.linecomponent.colors[this.linecomponent.seriesList.length]);
         this.series.init();
 
         this.linecomponent.seriesList.push(this.series);

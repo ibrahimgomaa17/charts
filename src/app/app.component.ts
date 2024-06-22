@@ -12,9 +12,12 @@ export class AppComponent {
 
   changeData(data:any){
     let d = []
+    let d2 = []
     for (let index = 0; index < data.length; index++) {
-      d.push(Math.random() * 1000)
+      d.push(Math.random() * 3000)
+      d2.push(Math.random() * 3000)
     }
 this.data1 = d;
+this.data2 = d2;
   }
 }

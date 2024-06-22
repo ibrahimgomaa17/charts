@@ -8,6 +8,9 @@ import { animate } from '@angular/animations';
   styleUrls: ['./line.component.scss']
 })
 export class LineComponent extends ChartBaseComponent {
+  colors = ['red', 'blue', 'green', 'orange', 'purple', 'red', 'teal', 'yellow'];
+
+
   categories: string[] = [];
   seriesList: PointSeries[] = []
   private allData: Set<any> = new Set();
@@ -95,18 +98,22 @@ export class LineComponent extends ChartBaseComponent {
 
 
 export class PointSeries {
-  private pointLines: PointLine[] = [];
   move: any;
   mouse: any;
   context: any;
   points: any;
-  constructor(points: any, context: any) {
+  private pointLines: PointLine[] = [];
+  color: any;
+  constructor(points: any, context: any, color:any) {
     this.points = points;
     this.context = context;
+    this.color = color;
   }
   init(points?: any) {
-    if (points?.length)
+    if (points?.length) {
       this.points = points;
+      this.pointLines = [];
+    }
     for (let pointIndex = 0; pointIndex < this.points.length; pointIndex++) {
       let nextPoint = this.points[pointIndex + 1] ?? this.points[pointIndex];
       this.pointLines.push(new PointLine(this.points[pointIndex][0], this.points[pointIndex][1], nextPoint[0], nextPoint[1], this.context))
@@ -117,9 +124,11 @@ export class PointSeries {
 
 
   update(ind: number, move: number, mouse: { x: number, y: number }) {
+    this.context.fillStyle = this.color;
+    this.context.strokeStyle = this.color;
     for (let index = 0; index < this.points.length; index++) {
       if (index % ind >= index)
-        this.pointLines[index].update(move, mouse)
+        this.pointLines[index].update(move, mouse, this.color)
     }
   }
 
@@ -157,7 +166,8 @@ class PointLine {
     this.context.stroke()
     this.context.closePath();
   }
-  update(move: number, mouse: { x: number, y: number }) {
+  update(move: number, mouse: { x: number, y: number }, color:any) {
+    this.context.strokeStyle = color;
     this.xMoved = this.x1 + move;
     this.x2Moved = this.x2 + move;
     this.r = 0;
