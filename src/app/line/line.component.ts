@@ -3,147 +3,170 @@ import { ChartBaseComponent } from '../chart-base.component';
 import { animate } from '@angular/animations';
 
 @Component({
-  selector: 'app-line',
+  selector: 'line-chart',
   templateUrl: './line.component.html',
   styleUrls: ['./line.component.scss']
 })
-export class LineComponent extends ChartBaseComponent implements AfterViewInit {
-
-  categories = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul']
-  data = [123, 276, 310, 212, 240, 156, 98, 123, 276, 310, 212, 240, 156, 98]
-  ngAfterViewInit(): void {
-    this.generatePoints(this.categories, this.data);
-    this.registerControls(this.categories);
+export class LineComponent extends ChartBaseComponent {
+  categories: string[] = [];
+  seriesList: PointSeries[] = []
+  private allData: Set<any> = new Set();
+  @Input('categories') set c(categories: string[]) {
+    if (!categories?.length)
+      return;
+    this.categories = categories;
+    setTimeout(() => {
+      this.init(categories);
+    }, 200);
+  }
+  refreshPoints(newData: [], oldData: []) {
+    for (let index = 0; index < oldData.length; index++) {
+      this.allData.delete(oldData[index]);
+    }
+    return this.registerSeries(newData);
+  }
+  // data2 = [746, 27, 310, 552, 220, 665]
+  init(categories: any): void {
+    // this.generatePoints(categories, this.data);
+    let index = 0;
+    this.registerControls(categories);
     let self = this;
-   function animate() {
+    function animate() {
       requestAnimationFrame(animate);
-      // if (index > generatedPoints.length * 5)
-      //   return;
+      if (!self.context)
+        return;
+      self.context.globalCompositeOperation = 'destination-over';
       self.context.clearRect(0, 0, self.width, self.height)
-      //  y axis
       self.horizontalSection(self.context)
-      // x-axis categories
       self.verticalSection(self.categories, self.context);
-      self.context.lineWidth = 1;
-      let arcValue = 3;
-      for (let ind = 0; ind < self.points.length - 1; ind++) {
-  
-        if (ind * 2 <= self.index) {
-          if (ind == 0) {
-            self.context.beginPath();
-            self.context.arc(self.move + self.points[0][0], self.points[0][1], arcValue, 0, 2 * Math.PI);
-            self.context.fill();
-            self.context.closePath()
-          }
-          self.context.beginPath();
-          self.context.arc(self.move + self.points[ind + 1][0], self.points[ind + 1][1], arcValue, 0, 2 * Math.PI);
-          self.context.moveTo(self.move + self.points[ind][0], self.points[ind][1])
-          self.context.lineTo(self.move + self.points[ind + 1][0], self.points[ind + 1][1])
-          self.context.fill();
-          self.context.stroke()
-          self.context.closePath();
-        }
-      }
-  
-      // self.context.strokeStyle = 'green'
-      self.index++;
-  
-  
-  
-  
+      self.seriesList.forEach(x => {
+        x.update(index, self.move, self.mouse);
+      })
+      // points.update(self.move, self.mouse);
+      index++;
     }
     animate();
   }
 
+  registerSeries(data: number[]) {
+    if (!this.categories.length)
+      return;
+    if (this.width)
+      this.canvas.nativeElement.width = this.width;
+    if (this.height)
+      this.canvas.nativeElement.height = this.height;
+    this.context = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
 
+    this.width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
+    this.height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
+    this.context.canvas.width = this.width;
+    this.context.canvas.height = this.height;
+    const availableHeight = this.height - (this.topArea + this.bottomArea)
+    const availableWidth = this.width - (this.leftArea + this.rightArea)
 
+    this.categoryWidth = this.categoryPlot < (availableWidth / this.categories.length) ? (availableWidth / this.categories.length) : this.categoryPlot;
 
-  dataSet = [
-    {
-      "Category": 1716336000000,
-      "value": 50541.4198,
-      "change": 1.11
-    },
-    {
-      "Category": 1716422400000,
-      "value": 50841.160121420005,
-      "change": -1.71
-    },
-    {
-      "Category": 1716508800000,
-      "value": 50241.56594619709,
-      "change": 0.64
-    },
-    {
-      "Category": 1716854400000,
-      "value": 50541.05417403104,
-      "change": -1.55
-    },
-    {
-      "Category": 1716940800000,
-      "value": 51241.583549961,
-      "change": 6.97
-    },
-    {
-      "Category": 1717027200000,
-      "value": 51141.18984017626,
-      "change": -0.67
-    },
-    {
-      "Category": 1717113600000,
-      "value": 51441.74610595251,
-      "change": 0.14
-    },
-    {
-      "Category": 1717372800000,
-      "value": 51641.77709115405,
-      "change": -2.83
-    },
-    {
-      "Category": 1717459200000,
-      "value": 51841.636448139325,
-      "change": 1.41
-    },
-    {
-      "Category": 1717545600000,
-      "value": 51541.12304655912,
-      "change": -1.87
-    },
-    {
-      "Category": 1717632000000,
-      "value": 51841.55500944779,
-      "change": 0.62
-    },
-    {
-      "Category": 1717718400000,
-      "value": 52541.18096150825,
-      "change": 0.64
-    },
-    {
-      "Category": 1717977600000,
-      "value": 52441.93902239309,
-      "change": -0.74
-    },
-    {
-      "Category": 1718064000000,
-      "value": 52845.71813463774,
-      "change": -2.48
-    },
-    {
-      "Category": 1718150400000,
-      "value": 53072.95472261668,
-      "change": 0.43
-    },
-    {
-      "Category": 1718323200000,
-      "value": 52998.65258600502,
-      "change": -0.14
-    },
-    {
-      "Category": 1718582400000,
-      "value": 53050.5912655393,
-      "change": 0.5
+    this.allData = new Set([...this.allData, ...new Set(data)])
+    let sortedData: any = Array.from(this.allData);
+    sortedData.sort((a: number, b: number) => a - b);
+    let stepFound = false;
+    while (!stepFound) {
+      if ((sortedData[sortedData.length - 1] / this.step) > 10)
+        this.step *= 2;
+      else stepFound = true;
     }
-  ]
 
+    this.steps = Math.ceil(sortedData[sortedData.length - 1] / this.step);
+    this.stepHeight = availableHeight / this.steps
+    let points: any = [];
+
+    let startPoint = this.height - this.bottomArea;
+    for (let index = 0; index < data.length; index++) {
+      const yPoint = data[index] * availableHeight / (this.steps * this.step)
+      points.push([(this.leftArea + (this.categoryWidth * index)) + this.categoryWidth / 2, startPoint - yPoint])
+    }
+
+    return points;
+  }
+
+
+
+}
+
+
+export class PointSeries {
+  private pointLines: PointLine[] = [];
+  move: any;
+  mouse: any;
+  context: any;
+  points: any;
+  constructor(points: any, context: any) {
+    this.points = points;
+    this.context = context;
+  }
+  init(points?: any) {
+    if (points?.length)
+      this.points = points;
+    for (let pointIndex = 0; pointIndex < this.points.length; pointIndex++) {
+      let nextPoint = this.points[pointIndex + 1] ?? this.points[pointIndex];
+      this.pointLines.push(new PointLine(this.points[pointIndex][0], this.points[pointIndex][1], nextPoint[0], nextPoint[1], this.context))
+
+    }
+  }
+
+
+
+  update(ind: number, move: number, mouse: { x: number, y: number }) {
+    for (let index = 0; index < this.points.length; index++) {
+      if (index % ind >= index)
+        this.pointLines[index].update(move, mouse)
+    }
+  }
+
+
+}
+class PointLine {
+  x1: any;
+  y1: any;
+  x2: any;
+  y2: any;
+  r: any = 4;
+  context: any;
+  xMoved = 0;
+  x2Moved = 0;
+  constructor(px1: any, py1: any, px2 = null, py2 = null, context: any) {
+    this.x1 = px1;
+    this.y1 = py1;
+    this.x2 = px2;
+    this.y2 = py2;
+    this.context = context;
+    this.xMoved = this.x1;
+    this.x2Moved = this.x2;
+  }
+
+  draw() {
+    this.context.lineWidth = 1;
+    this.context.beginPath();
+    this.context.arc(this.xMoved, this.y1, this.r, 0, 2 * Math.PI);
+    this.context.fill();
+    this.context.closePath();
+    this.context.beginPath();
+    this.context.moveTo(this.xMoved, this.y1)
+    this.context.lineTo(this.x2Moved, this.y2)
+    this.context.fill();
+    this.context.stroke()
+    this.context.closePath();
+  }
+  update(move: number, mouse: { x: number, y: number }) {
+    this.xMoved = this.x1 + move;
+    this.x2Moved = this.x2 + move;
+    this.r = 0;
+    if (this.xMoved < mouse.x + 25 && this.xMoved > mouse.x - 25 && this.y1 < mouse.y + 25 && this.y1 > mouse.y - 25) {
+      this.r = 4;
+    }
+
+
+
+    this.draw();
+  }
 }

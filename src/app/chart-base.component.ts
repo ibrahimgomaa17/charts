@@ -15,7 +15,9 @@ export class ChartBaseComponent {
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
   @Input() width: number = 0;
   @Input() height: number = 0;
-  categoryPlot = 100;
+  @Input() lineColor = "black";
+  @Input() backgroundColor = "white";
+  categoryPlot = 160;
   topArea = 50;
   bottomArea = 40;
   leftArea = 40;
@@ -27,56 +29,17 @@ export class ChartBaseComponent {
   categoryWidth!: number;
   context!: CanvasRenderingContext2D
   steps!: number;
-  step!:number;
+  step: number = 5;
   stepHeight!: number;
-  points = [];
-
-  generatePoints(categories: any, data: any) {
-    if (this.width)
-      this.canvas.nativeElement.width = this.width;
-    if (this.height)
-      this.canvas.nativeElement.height = this.height;
+  points: any = [];
+  mouse: { x: number, y: number } = {
+    x: 0,
+    y: 0
+  };
 
 
-    this.context = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
 
-    this.width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
-    this.height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
-    this.context.canvas.width = this.width;
-    this.context.canvas.height = this.height;
-    const availableHeight = this.height - (this.topArea + this.bottomArea)
-    const availableWidth = this.width - (this.leftArea + this.rightArea)
-
-    this.categoryWidth = this.categoryPlot < (availableWidth / categories.length) ? (availableWidth / categories.length) : this.categoryPlot;
-
-
-    this.context.lineWidth = .3
-    let sortedData: any = JSON.parse(JSON.stringify(data))
-    sortedData.sort((a: number, b: number) => a - b);
-    let step = 5;
-    let stepFound = false;
-    while (!stepFound) {
-      if ((sortedData[sortedData.length - 1] / step) > 10)
-        step *= 2;
-      else stepFound = true;
-    }
-    this.steps = Math.ceil(sortedData[sortedData.length - 1] / step);
-    this.stepHeight = availableHeight / this.steps
-    this.context.globalCompositeOperation = 'destination-over';
-    let points: any = [];
-
-    let startPoint = this.height - this.bottomArea;
-    for (let index = 0; index < data.length; index++) {
-      const yPoint = data[index] * availableHeight / (this.steps * step)
-      points.push([(this.leftArea + (this.categoryWidth * index)) + this.categoryWidth / 2, startPoint - yPoint])
-      // c.fillStyle = "red"
-    }
-
-    return points;
-
-  }
-
-  verticalSection(categories:any, context:any) {
+  verticalSection(categories: any, context: any) {
     context.lineWidth = .25;
     for (let index = 0; index <= categories.length; index++) {
       context.beginPath();
@@ -98,9 +61,10 @@ export class ChartBaseComponent {
       context.stroke()
     }
   }
-  horizontalSection(context:any) {
+  horizontalSection(context: any) {
     context.lineWidth = .25;
-    context.strokeStyle = 'black'
+    context.strokeStyle = this.lineColor;
+
     for (let index = 0; index <= this.steps; index++) {
       context.beginPath();
       context.moveTo(this.leftArea, (this.height - (this.bottomArea)) - (index * this.stepHeight))
@@ -110,22 +74,22 @@ export class ChartBaseComponent {
       context.textAlign = "center"
       context.textBaseline = "middle"
       context.font = "14px Arial, Times, serif"
-
+      context.fillStyle = this.lineColor;
       context.fillText((this.step * index).toString(), this.leftArea / 2, (this.height - this.bottomArea) - (index * this.stepHeight))
+      context.fill();
       context.stroke()
     }
-    context.fillStyle = 'white'
+    context.fillStyle = this.backgroundColor
     context.fillRect(0, 0, this.leftArea - 1, this.height);
     context.fill()
 
-    context.fillStyle = 'black'
-    context.strokeStyle = 'black'
-
+    context.fillStyle = this.lineColor;
+    context.strokeStyle = this.lineColor;
+    context.fill()
   }
 
 
   registerControls(categories: any) {
-
     // mobile controls
     this.canvas.nativeElement.addEventListener('touchmove', e => {
       e.preventDefault()
@@ -159,6 +123,9 @@ export class ChartBaseComponent {
 
     })
     this.canvas.nativeElement.addEventListener('mousemove', e => {
+      this.mouse.x = e.offsetX;
+      this.mouse.y = e.offsetY;
+
       if (this.isHold) {
         if ((this.move <= 0 && e.clientX - this.start > 0) || ((Math.abs(this.move) + this.width > categories.length * this.categoryWidth) && e.clientX + Math.abs(this.move) < this.start))
           return
@@ -166,6 +133,10 @@ export class ChartBaseComponent {
       }
 
     })
+
+  }
+
+  registerData() {
 
   }
 }
