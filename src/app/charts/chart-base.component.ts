@@ -13,6 +13,7 @@ import { AfterViewInit, Component, ElementRef, Input, ViewChild } from '@angular
 export class ChartBaseComponent {
 
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
+  @Input() title: string = '';
   @Input() width: number = 0;
   @Input() height: number = 0;
   @Input() lineColor = "black";
@@ -64,6 +65,14 @@ export class ChartBaseComponent {
   horizontalSection(context: any) {
     context.lineWidth = .25;
     context.strokeStyle = this.lineColor;
+
+    context.textAlign = "center"
+    context.textBaseline = "middle"
+    context.font = "16px Arial, Times, serif"
+    context.fillStyle = this.lineColor;
+    context.fillText( this.title,this.width /2, 25);
+    context.fill();
+    context.stroke()
 
     for (let index = 0; index <= this.steps; index++) {
       context.beginPath();

@@ -14,13 +14,14 @@ import { LineComponent, PointSeries } from './line.component';
 export class LineSeriesComponent {
   private series!: PointSeries;
   private seriesData!: [];
+  @Input() title:string = ''
   @Input('data') set d(data: any) {
     if (!data?.length)
       return;
     if (!this.series) {
       setTimeout(() => {
         let points = this.linecomponent.registerSeries(data)
-        this.series = new PointSeries(points, this.linecomponent.context, this.linecomponent.colors[this.linecomponent.seriesList.length]);
+        this.series = new PointSeries(points, this.linecomponent.context, this.linecomponent.colors[this.linecomponent.seriesList.length], this.title);
         this.series.init();
 
         this.linecomponent.seriesList.push(this.series);
