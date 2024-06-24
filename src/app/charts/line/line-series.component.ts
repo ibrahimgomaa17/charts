@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { LineComponent, PointSeries } from './line.component';
+import { auditTime, debounce, debounceTime, filter, throttleTime } from 'rxjs';
 
 @Component({
   selector: 'line-chart-series',
@@ -29,13 +30,21 @@ export class LineSeriesComponent {
       this.seriesData = data;
     }
     else {
-      const points = this.linecomponent.refreshPoints(data, this.seriesData);
-      const seriesIndex = this.linecomponent.seriesList.indexOf(this.series);
-      this.linecomponent.seriesList[seriesIndex].init(points);
-      this.series = this.linecomponent.seriesList[seriesIndex];
+      this.plotSeries(data);
     }
   };
-  constructor(private linecomponent: LineComponent) { }
+  constructor(private linecomponent: LineComponent) {
+    linecomponent.zoom$.pipe(auditTime(10),filter(x=> x != null)).subscribe(x=>{
+      this.plotSeries(this.seriesData, x)
+    })
+  }
+
+  private plotSeries(data: any, zoom?:any) {
+    const points = this.linecomponent.refreshPoints(data, this.seriesData, zoom);
+    const seriesIndex = this.linecomponent.seriesList.indexOf(this.series);
+    this.linecomponent.seriesList[seriesIndex].init(points);
+    this.series = this.linecomponent.seriesList[seriesIndex];
+  }
 }
 
 

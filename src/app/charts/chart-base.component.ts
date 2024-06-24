@@ -1,4 +1,5 @@
 import { AfterViewInit, Component, ElementRef, Input, ViewChild } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-chart-base',
@@ -22,10 +23,14 @@ export class ChartBaseComponent {
   topArea = 50;
   bottomArea = 40;
   leftArea = 40;
+  availableHeight = 0;
+  availableWidth = 0;
   rightArea = 1;
   index = -10;
   isHold = false
   start = 0;
+  zoom$: BehaviorSubject<number> = new BehaviorSubject(0);
+  zoomValue = 0;
   move: number = 0;
   categoryWidth!: number;
   context!: CanvasRenderingContext2D
@@ -70,7 +75,7 @@ export class ChartBaseComponent {
     context.textBaseline = "middle"
     context.font = "16px Arial, Times, serif"
     context.fillStyle = this.lineColor;
-    context.fillText( this.title,this.width /2, 25);
+    context.fillText(this.title, this.width / 2, 25);
     context.fill();
     context.stroke()
 
@@ -120,6 +125,14 @@ export class ChartBaseComponent {
 
 
     // browser controls
+
+    onwheel = (event) => {
+      this.zoomValue = this.zoomValue +  event.deltaY > 1? 1: -1;
+      this.zoom$.next(this.zoomValue);
+    };
+
+
+
     this.canvas.nativeElement.addEventListener('mousedown', e => {
       this.isHold = true
       this.start = e.clientX - this.move;

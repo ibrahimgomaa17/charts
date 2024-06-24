@@ -22,14 +22,33 @@ export class LineComponent extends ChartBaseComponent {
       this.init(categories);
     }, 200);
   }
-  refreshPoints(newData: [], oldData: []) {
-    for (let index = 0; index < oldData.length; index++) {
-      this.allData.delete(oldData[index]);
-    }
-    return this.registerSeries(newData);
+  refreshPoints(newData: [], oldData: [], zoom?: any) {
+    if (!zoom && zoom != 0)
+      for (let index = 0; index < oldData.length; index++) {
+        this.allData.delete(oldData[index]);
+      }
+    return this.registerSeries(newData, zoom);
   }
   // data2 = [746, 27, 310, 552, 220, 665]
   init(categories: any): void {
+    if (!this.categories.length)
+      return;
+    if (this.width)
+      this.canvas.nativeElement.width = this.width;
+    if (this.height)
+      this.canvas.nativeElement.height = this.height;
+    this.context = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
+
+    this.width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
+    this.height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
+    this.context.canvas.width = this.width;
+    this.context.canvas.height = this.height;
+    this.availableHeight = this.height - (this.topArea + this.bottomArea)
+    this.availableWidth = this.width - (this.leftArea + this.rightArea)
+
+    this.categoryWidth = this.categoryPlot < (this.availableWidth / this.categories.length) ? (this.availableWidth / this.categories.length) : this.categoryPlot;
+
+
     // this.generatePoints(categories, this.data);
     let index = 0;
     this.registerControls(categories);
@@ -50,24 +69,24 @@ export class LineComponent extends ChartBaseComponent {
     animate();
   }
 
-  registerSeries(data: number[]) {
-    if (!this.categories.length)
-      return;
-    if (this.width)
-      this.canvas.nativeElement.width = this.width;
-    if (this.height)
-      this.canvas.nativeElement.height = this.height;
-    this.context = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
+  registerSeries(data: number[], zoom?: number) {
+    if (zoom) {
+      if (zoom > 0) {
+        if (this.categoryWidth < this.availableWidth / 3)
+          this.categoryWidth++;
+      }
+      else {
+        if (this.categoryWidth * this.categories.length > this.availableWidth) {
+          if (this.categoryWidth * this.categories.length + this.move > this.availableWidth)
+            this.categoryWidth--;
+          if (this.move < 0)
+            this.move ++;;
+          console.log(this.move);
 
-    this.width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
-    this.height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
-    this.context.canvas.width = this.width;
-    this.context.canvas.height = this.height;
-    const availableHeight = this.height - (this.topArea + this.bottomArea)
-    const availableWidth = this.width - (this.leftArea + this.rightArea)
 
-    this.categoryWidth = this.categoryPlot < (availableWidth / this.categories.length) ? (availableWidth / this.categories.length) : this.categoryPlot;
-
+        }
+      }
+    }
     this.allData = new Set([...this.allData, ...new Set(data)])
     let sortedData: any = Array.from(this.allData);
     sortedData.sort((a: number, b: number) => a - b);
@@ -79,12 +98,12 @@ export class LineComponent extends ChartBaseComponent {
     }
 
     this.steps = Math.ceil(sortedData[sortedData.length - 1] / this.step);
-    this.stepHeight = availableHeight / this.steps
+    this.stepHeight = this.availableHeight / this.steps
     let points: any = [];
 
     let startPoint = this.height - this.bottomArea;
     for (let index = 0; index < data.length; index++) {
-      const yPoint = data[index] * availableHeight / (this.steps * this.step)
+      const yPoint = data[index] * this.availableHeight / (this.steps * this.step)
       points.push([(this.leftArea + (this.categoryWidth * index)) + this.categoryWidth / 2, startPoint - yPoint, data[index]])
     }
 
@@ -143,8 +162,8 @@ class PointLine {
   xMoved = 0;
   x2Moved = 0;
   name: string = '';
-  value:any;
-  constructor(px1: any, py1: any, px2 = null, py2 = null, context: any, name: string, value:any) {
+  value: any;
+  constructor(px1: any, py1: any, px2 = null, py2 = null, context: any, name: string, value: any) {
     this.x1 = px1;
     this.y1 = py1;
     this.x2 = px2;
