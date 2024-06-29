@@ -11,7 +11,7 @@ import { BehaviorSubject } from 'rxjs';
   styles: [
   ]
 })
-export class ChartBaseComponent {
+export abstract class ChartBaseComponent {
 
   @ViewChild('canvas') canvas!: ElementRef<HTMLCanvasElement>;
   @Input() title: string = '';
@@ -20,9 +20,9 @@ export class ChartBaseComponent {
   @Input() lineColor = "black";
   @Input() backgroundColor = "white";
   categoryPlot = 160;
-  topArea = 50;
+  topArea = 15;
   bottomArea = 40;
-  leftArea = 40;
+  leftArea = 0;
   availableHeight = 0;
   availableWidth = 0;
   rightArea = 1;
@@ -34,8 +34,9 @@ export class ChartBaseComponent {
   move: number = 0;
   categoryWidth!: number;
   context!: CanvasRenderingContext2D
-  steps!: number;
-  step: number = 5;
+  steps: number[] = [];
+  step: number = 0;
+  stepStart: number = 0;
   stepHeight!: number;
   points: any = [];
   mouse: { x: number, y: number } = {
@@ -44,6 +45,34 @@ export class ChartBaseComponent {
   };
 
 
+  plotXValues(categories: any, context: any){
+    for (let index = 0; index <= categories.length; index++) {
+      context.textAlign = "center"
+      context.font = "12px Arial, Times, serif"
+      context.fillText(categories[index], this.move + this.leftArea + (this.categoryWidth * index) + this.categoryWidth / 2, this.height - (this.bottomArea / 2))
+      context.fill();
+      context.stroke()
+    }
+  }
+  plotYValues(context: any){
+    for (let index = 0; index <= this.steps.length; index++) {
+      context.textAlign = "center"
+      context.textBaseline = "middle"
+      context.font = "12px Arial, Times, serif"
+      context.fillStyle = this.lineColor;
+      const textValue = this.steps[index] ?? this.steps[this.steps.length - 1] + this.step;
+      context.fillText(textValue.toString(), this.leftArea / 2, (this.height - this.bottomArea) - (index * this.stepHeight))
+      context.fill();
+      context.stroke()
+    }
+    context.fillStyle = this.backgroundColor
+    context.fillRect(0, 0, this.leftArea - 1, this.height);
+    context.fill()
+
+    context.fillStyle = this.lineColor;
+    context.strokeStyle = this.lineColor;
+    context.fill()
+  }
 
   verticalSection(categories: any, context: any) {
     context.lineWidth = .25;
@@ -58,17 +87,10 @@ export class ChartBaseComponent {
       context.lineTo(value, this.topArea);
       context.closePath();
       context.stroke()
-      context.textAlign = "center"
-      context.font = "14px Arial, Times, serif"
-
-      context.fillText(categories[index], this.move + this.leftArea + (this.categoryWidth * index) + this.categoryWidth / 2, this.height - (this.bottomArea / 2))
-
-      context.fill();
-      context.stroke()
     }
   }
   horizontalSection(context: any) {
-    context.lineWidth = .25;
+    context.lineWidth = 1/4;
     context.strokeStyle = this.lineColor;
 
     context.textAlign = "center"
@@ -79,27 +101,14 @@ export class ChartBaseComponent {
     context.fill();
     context.stroke()
 
-    for (let index = 0; index <= this.steps; index++) {
+    for (let index = 0; index <= this.steps.length; index++) {
       context.beginPath();
       context.moveTo(this.leftArea, (this.height - (this.bottomArea)) - (index * this.stepHeight))
       context.lineTo(this.width - this.rightArea, (this.height - this.bottomArea) - (index * this.stepHeight))
       context.closePath();
       context.stroke()
-      context.textAlign = "center"
-      context.textBaseline = "middle"
-      context.font = "14px Arial, Times, serif"
-      context.fillStyle = this.lineColor;
-      context.fillText((this.step * index).toString(), this.leftArea / 2, (this.height - this.bottomArea) - (index * this.stepHeight))
-      context.fill();
-      context.stroke()
+    
     }
-    context.fillStyle = this.backgroundColor
-    context.fillRect(0, 0, this.leftArea - 1, this.height);
-    context.fill()
-
-    context.fillStyle = this.lineColor;
-    context.strokeStyle = this.lineColor;
-    context.fill()
   }
 
 
@@ -127,8 +136,8 @@ export class ChartBaseComponent {
     // browser controls
 
     onwheel = (event) => {
-      this.zoomValue = this.zoomValue +  event.deltaY > 1? 1: -1;
-      this.zoom$.next(this.zoomValue);
+      // this.zoomValue = this.zoomValue +  event.deltaY > 1? 1: -1;
+      // this.zoom$.next(this.zoomValue);
     };
 
 
@@ -149,7 +158,9 @@ export class ChartBaseComponent {
       this.mouse.y = e.offsetY;
 
       if (this.isHold) {
-        if ((this.move <= 0 && e.clientX - this.start > 0) || ((Math.abs(this.move) + this.width > categories.length * this.categoryWidth) && e.clientX + Math.abs(this.move) < this.start))
+        if (this.move <= 0 && e.clientX - this.start > 0)
+          return;
+        if (((Math.abs(this.move) + (this.width - this.leftArea) > categories.length * this.categoryWidth) && e.clientX + Math.abs(this.move) < this.start))
           return
         this.move = e.clientX - this.start
       }

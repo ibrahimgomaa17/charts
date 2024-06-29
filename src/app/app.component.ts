@@ -7,10 +7,26 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'charts';
-  data1 = [123, 276, 310, 212, 240, 156, 444, 124, 344, 111, 2345, 1536];
-  data2 = [444, 124, 344, 111, 2345, 1536, 123, 276, 310, 212, 240, 156]
-  data3 = [444, 124, 344, 111, 2345, 1536]
-
+  categories= [
+    "10-Jun",
+    "11-Jun",
+    "12-Jun",
+    "14-Jun",
+    "17-Jun",
+    "20-Jun",
+    "25-Jun",
+    "27-Jun"
+]
+  data =[
+    52441.93902239309,
+    52845.71813463774,
+    53072.95472261668,
+    52998.65258600502,
+    53050.5912655393,
+    53267.27233565712,
+    53586.87596967106,
+    53978.06016424966
+]
   changeData(data:any){
     let d = []
     let d2 = []
@@ -18,7 +34,6 @@ export class AppComponent {
       d.push(Math.random() * 1000)
       d2.push(Math.random() * 3000)
     }
-this.data1 = d;
-this.data2 = d2;
+
   }
 }

@@ -38,15 +38,15 @@ export class LineComponent extends ChartBaseComponent {
     if (this.height)
       this.canvas.nativeElement.height = this.height;
     this.context = this.canvas.nativeElement?.getContext('2d') as CanvasRenderingContext2D;
-
+    if (this.title)
+      this.topArea = 50;
     this.width = this.canvas.nativeElement.width = this.canvas.nativeElement.clientWidth;
     this.height = this.canvas.nativeElement.height = this.canvas.nativeElement.clientHeight;
     this.context.canvas.width = this.width;
     this.context.canvas.height = this.height;
-    this.availableHeight = this.height - (this.topArea + this.bottomArea)
-    this.availableWidth = this.width - (this.leftArea + this.rightArea)
 
-    this.categoryWidth = this.categoryPlot < (this.availableWidth / this.categories.length) ? (this.availableWidth / this.categories.length) : this.categoryPlot;
+
+    // this.categoryWidth = this.categoryPlot < (this.availableWidth / this.categories.length) ? (this.availableWidth / this.categories.length) : this.categoryPlot;
 
 
     // this.generatePoints(categories, this.data);
@@ -59,13 +59,17 @@ export class LineComponent extends ChartBaseComponent {
         return;
       self.context.globalCompositeOperation = 'destination-over';
       self.context.clearRect(0, 0, self.width, self.height)
-      self.horizontalSection(self.context)
-      self.verticalSection(self.categories, self.context);
+      self.plotYValues(self.context);
+      self.plotXValues(self.categories, self.context);
       self.seriesList.forEach(x => {
         x.update(index, self.move, self.mouse);
       })
+      self.horizontalSection(self.context)
+      self.verticalSection(self.categories, self.context);
+
       index++;
     }
+
     animate();
   }
 
@@ -80,31 +84,62 @@ export class LineComponent extends ChartBaseComponent {
           if (this.categoryWidth * this.categories.length + this.move > this.availableWidth)
             this.categoryWidth--;
           if (this.move < 0)
-            this.move ++;;
+            this.move++;;
           console.log(this.move);
 
 
         }
       }
     }
+
     this.allData = new Set([...this.allData, ...new Set(data)])
     let sortedData: any = Array.from(this.allData);
     sortedData.sort((a: number, b: number) => a - b);
-    let stepFound = false;
-    while (!stepFound) {
-      if ((sortedData[sortedData.length - 1] / this.step) > 10)
-        this.step *= 2;
-      else stepFound = true;
+    this.step = 0;
+
+    for (let index = 0; index < sortedData.length - 1; index++) {
+      const value = sortedData[index + 1] - sortedData[index]
+      if (value > this.step)
+        this.step = value;
+    }
+    this.step = Math.round(this.step)
+    let stepStartValue = 5;
+    while (stepStartValue * 10 < (this.step * 1.5)) {
+      stepStartValue *= 10
+    }
+    this.step = stepStartValue;
+    let initialValue = (Math.round(sortedData[0] / this.step) - 1) * this.step;
+    this.steps = []
+    this.steps.push(initialValue)
+    while (this.steps[this.steps.length - 1] <= sortedData[sortedData.length - 1]) {
+      this.steps.push(this.steps[this.steps.length - 1] + this.step);
+    }
+    while (this.steps.length > 10) {
+      const s = this.steps.filter((x, i) => i % 2 == 1);
+      this.steps = s;
+      this.step = this.steps[1] - this.steps[0];
     }
 
-    this.steps = Math.ceil(sortedData[sortedData.length - 1] / this.step);
-    this.stepHeight = this.availableHeight / this.steps
+    this.leftArea = this.context.measureText(this.steps[0].toString()).width + 20;
+    this.availableHeight = this.height - (this.topArea + this.bottomArea)
+    this.availableWidth = this.width - (this.leftArea + this.rightArea)
+
+    this.categoryWidth = this.availableHeight / this.steps.length;
+    const autoWidth = this.categoryPlot < (this.availableWidth / this.categories.length) ? (this.availableWidth / this.categories.length) : this.categoryPlot;
+    if (this.categoryWidth < autoWidth)
+      this.categoryWidth = (this.availableWidth / this.categories.length)
+
+    this.stepHeight = this.availableHeight / this.steps.length
     let points: any = [];
 
     let startPoint = this.height - this.bottomArea;
+    const totalPlotValue = this.steps[this.steps.length - 1] + this.step - initialValue;
     for (let index = 0; index < data.length; index++) {
-      const yPoint = data[index] * this.availableHeight / (this.steps * this.step)
-      points.push([(this.leftArea + (this.categoryWidth * index)) + this.categoryWidth / 2, startPoint - yPoint, data[index]])
+      // const yPoint = data[index] * this.availableHeight / (this.steps[this.steps.length - 1] - this.steps[0])
+      const plotValue = data[index] - initialValue;
+      const y = plotValue * this.availableHeight / totalPlotValue;
+
+      points.push([(this.leftArea + (this.categoryWidth * index)) + this.categoryWidth / 2, startPoint - y, data[index]])
     }
 
     return points;
@@ -132,6 +167,7 @@ export class PointSeries {
       this.points = points;
       this.pointLines = [];
     }
+
     for (let pointIndex = 0; pointIndex < this.points.length; pointIndex++) {
       let nextPoint = this.points[pointIndex + 1] ?? this.points[pointIndex];
       this.pointLines.push(new PointLine(this.points[pointIndex][0], this.points[pointIndex][1], nextPoint[0], nextPoint[1], this.context, this.name, this.points[pointIndex][2]))
@@ -157,12 +193,13 @@ class PointLine {
   y1: any;
   x2: any;
   y2: any;
-  r: any = 4;
+  r: any = 5;
   context: any;
   xMoved = 0;
   x2Moved = 0;
   name: string = '';
   value: any;
+  isFocused = false;
   constructor(px1: any, py1: any, px2 = null, py2 = null, context: any, name: string, value: any) {
     this.x1 = px1;
     this.y1 = py1;
@@ -172,41 +209,45 @@ class PointLine {
     this.xMoved = this.x1;
     this.x2Moved = this.x2;
     this.name = name;
-    this.value = value;
+    this.value = Math.round(value);
   }
 
   draw() {
     this.context.lineWidth = 1;
     this.context.beginPath();
+    if (!this.isFocused)
+      this.context.fillStyle = 'white'
     this.context.arc(this.xMoved, this.y1, this.r, 0, 2 * Math.PI);
+    this.context.strokeStyle = "#FF0000";
+    this.context.stroke()
     this.context.fill();
     this.context.closePath();
     this.context.beginPath();
     this.context.moveTo(this.xMoved, this.y1)
-    this.context.lineTo(this.x2Moved, this.y2)
+    this.context.lineTo(this.x2Moved - (this.r / 2 + 2), this.y2)
     this.context.fill();
     this.context.stroke()
     this.context.closePath();
   }
   update(move: number, mouse: { x: number, y: number }, color: any) {
+    this.isFocused = false;
     this.xMoved = this.x1 + move;
     this.x2Moved = this.x2 + move;
-    this.r = 0;
     if (this.xMoved < mouse.x + 25 && this.xMoved > mouse.x - 25 && this.y1 < mouse.y + 25 && this.y1 > mouse.y - 25) {
-      this.r = 4;
       this.context.fillStyle = 'white'
       this.context.textAlign = "center"
       this.context.textBaseline = "middle"
-      this.context.font = "10px Arial, Times, serif"
+      this.context.font = "11px Arial, Times, serif"
       // this.context.fillStyle = this.lineColor;
-      this.context.fillText(this.name + ' - ' + this.value, this.xMoved, this.y1 - 20);
+      const seriesName = this.name ? this.name + ' - ' : '';
+      this.context.fillText(seriesName + this.value, this.xMoved, this.y1 - 20);
       this.context.fill()
-      const dimension = this.context.measureText(this.name + ' - ' + this.value)
+      const dimension = this.context.measureText(seriesName + this.value)
       this.context.fillStyle = color
       this.context.fillRect(this.xMoved - (dimension.width + 20) / 2, this.y1 - 30, dimension.width + 20, 20);
       this.context.fill();
       this.context.stroke()
-
+      this.isFocused = true;
     }
 
 

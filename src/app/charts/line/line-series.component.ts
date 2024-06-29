@@ -30,11 +30,13 @@ export class LineSeriesComponent {
       this.seriesData = data;
     }
     else {
-      this.plotSeries(data);
+      setTimeout(() => {
+        this.plotSeries(data);
+      }, 200);
     }
   };
   constructor(private linecomponent: LineComponent) {
-    linecomponent.zoom$.pipe(auditTime(10),filter(x=> x != null)).subscribe(x=>{
+    linecomponent.zoom$.pipe(auditTime(10),filter(x=> x != null && x != 0)).subscribe(x=>{
       this.plotSeries(this.seriesData, x)
     })
   }
